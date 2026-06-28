@@ -1,0 +1,38 @@
+name: ✈️ 항공사 채용공고 알림
+
+on:
+  schedule:
+    - cron: '0 23 * * *'   # 매일 UTC 23:00 = KST 08:00
+  workflow_dispatch:         # GitHub에서 수동 실행 버튼
+
+jobs:
+  check-airline-jobs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      # seen_jobs.json 을 Actions Cache 로 영속 보관
+      - name: seen_jobs 캐시 복원
+        uses: actions/cache@v4
+        with:
+          path: seen_jobs.json
+          key: seen-jobs-${{ github.run_id }}
+          restore-keys: |
+            seen-jobs-
+
+      - name: Python 3.11 설치
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 패키지 설치
+        run: pip install -r requirements.txt
+
+      - name: 채용공고 크롤링 & 메일 발송
+        env:
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}
+          EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
+          EMAIL_TO:   ${{ secrets.EMAIL_TO }}
+        run: python crawler.py
