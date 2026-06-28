@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aircraft Removed Parts Register</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-logo">
+        <div class="logo-icon">✈</div>
+        <div class="header-titles">
+          <span class="header-sub">MRO DOCUMENT CONTROL</span>
+          <h1 class="header-title">REMOVED PARTS REGISTER</h1>
+        </div>
+      </div>
+      <div class="header-meta">
+        <span id="currentDate" class="header-date"></span>
+        <span class="header-rev">REV 01</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-content">
+
+    <!-- ENTRY FORM -->
+    <section class="card form-card">
+      <div class="card-header">
+        <span class="card-icon">📋</span>
+        <h2>PART ENTRY</h2>
+        <span class="card-badge" id="totalBadge">0 Parts</span>
+      </div>
+
+      <div class="form-grid">
+
+        <div class="form-group">
+          <label for="acReg">A/C Registration</label>
+          <input type="text" id="acReg" placeholder="e.g. HL8080" />
+        </div>
+
+        <div class="form-group">
+          <label for="pn">P/N <span class="req">*</span></label>
+          <input type="text" id="pn" placeholder="Part Number" />
+        </div>
+
+        <div class="form-group">
+          <label for="sn">S/N</label>
+          <input type="text" id="sn" placeholder="Serial Number" />
+        </div>
+
+        <div class="form-group">
+          <label for="pos">Position</label>
+          <input type="text" id="pos" placeholder="e.g. LH / RH / FWD" />
+        </div>
+
+        <div class="form-group">
+          <label for="qty">Quantity <span class="req">*</span></label>
+          <input type="number" id="qty" placeholder="1" min="1" value="1" />
+        </div>
+
+        <div class="form-group">
+          <label for="removedBy">Removed By</label>
+          <input type="text" id="removedBy" placeholder="Name / ID" />
+        </div>
+
+        <!-- Photo Upload: Part -->
+        <div class="form-group upload-group">
+          <label>Part Photo</label>
+          <label class="upload-box" id="partPhotoBox" for="partPhotoInput">
+            <span class="upload-icon">📷</span>
+            <span class="upload-hint">Click or drag to upload</span>
+            <img id="partPhotoPreview" class="upload-preview" src="" alt="" />
+          </label>
+          <input type="file" id="partPhotoInput" accept="image/*" style="display:none"
+            onchange="previewPhoto('partPhotoInput','partPhotoPreview','partPhotoBox')" />
+          <button class="clear-photo-btn" type="button" id="clearPartBtn"
+            onclick="clearPhoto('partPhotoInput','partPhotoPreview','partPhotoBox','clearPartBtn')" style="display:none">
+            ✕ Remove
+          </button>
+        </div>
+
+        <!-- Photo Upload: Plate -->
+        <div class="form-group upload-group">
+          <label>Plate / Tag Photo <span class="label-hint">(P/N · S/N visible)</span></label>
+          <label class="upload-box" id="platePhotoBox" for="platePhotoInput">
+            <span class="upload-icon">🔖</span>
+            <span class="upload-hint">Click or drag to upload</span>
+            <img id="platePhotoPreview" class="upload-preview" src="" alt="" />
+          </label>
+          <input type="file" id="platePhotoInput" accept="image/*" style="display:none"
+            onchange="previewPhoto('platePhotoInput','platePhotoPreview','platePhotoBox','clearPlateBtn')" />
+          <button class="clear-photo-btn" type="button" id="clearPlateBtn"
+            onclick="clearPhoto('platePhotoInput','platePhotoPreview','platePhotoBox','clearPlateBtn')" style="display:none">
+            ✕ Remove
+          </button>
+        </div>
+
+      </div>
+
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="addPart()">
+          <span class="btn-icon">＋</span> REGISTER PART
+        </button>
+        <button class="btn btn-ghost" onclick="resetForm()">
+          ↺ CLEAR
+        </button>
+      </div>
+    </section>
+
+    <!-- SEARCH & TABLE -->
+    <section class="card table-card">
+      <div class="card-header">
+        <span class="card-icon">🔍</span>
+        <h2>PARTS LOG</h2>
+        <div class="search-wrap">
+          <input type="text" id="searchInput" placeholder="Search P/N · S/N · Reg…" oninput="renderTable()" />
+          <span class="search-clear" onclick="clearSearch()">✕</span>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table id="partsTable">
+          <thead>
+            <tr>
+              <th class="col-no">No.</th>
+              <th class="col-date">Date</th>
+              <th class="col-reg">Reg.</th>
+              <th class="col-pn">P/N</th>
+              <th class="col-sn">S/N</th>
+              <th class="col-pos">POS</th>
+              <th class="col-qty">QTY</th>
+              <th class="col-by">Removed By</th>
+              <th class="col-photo">Part Photo</th>
+              <th class="col-photo">Plate Photo</th>
+              <th class="col-del">DEL</th>
+            </tr>
+          </thead>
+          <tbody id="partsBody"></tbody>
+        </table>
+        <div id="emptyState" class="empty-state" style="display:none;">
+          <div class="empty-icon">📦</div>
+          <p>No parts registered yet.<br/>Fill in the form above to add the first entry.</p>
+        </div>
+      </div>
+
+      <div class="table-footer">
+        <span class="total-label">TOTAL REGISTERED : <strong id="totalCount">0</strong> part(s)</span>
+        <div class="footer-actions">
+          <button class="btn btn-secondary" onclick="exportCSV()">⬇ EXCEL / CSV DOWNLOAD</button>
+          <button class="btn btn-danger-ghost" onclick="clearAll()">🗑 CLEAR ALL</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <p>AIRCRAFT REMOVED PARTS REGISTER &nbsp;|&nbsp; MRO DOCUMENT CONTROL &nbsp;|&nbsp; DATA STORED IN LOCAL BROWSER</p>
+  </footer>
+
+  <!-- TOAST -->
+  <div id="toast" class="toast"></div>
+
+  <!-- LIGHTBOX -->
+  <div id="lightbox" class="lightbox" onclick="closeLightbox(event)">
+    <div class="lightbox-inner">
+      <button class="lightbox-close" onclick="closeLightbox(event)">✕</button>
+      <img id="lightboxImg" src="" alt="Part photo" />
+      <p id="lightboxCaption" class="lightbox-caption"></p>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
