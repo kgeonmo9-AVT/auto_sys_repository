@@ -72,22 +72,42 @@ AIRLINES = [
 ]
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/124 Safari/537.36",
-    "Accept": "application/json, text/html, */*",
-    "Accept-Language": "ko-KR,ko;q=0.9",
-    "Referer": "https://www.google.com/",
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+    "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Connection": "keep-alive",
 }
 
 
 # ── 크롤러 ────────────────────────────────────────────────
 
 def fetch_recruiter(airline: dict) -> list[dict]:
-    """recruiter.co.kr 공통 API"""
+    """recruiter.co.kr 공통 API — 세션으로 홈 먼저 방문 후 API 호출"""
     try:
-        r = requests.get(airline["api"], headers=HEADERS, timeout=10)
+        session = requests.Session()
+        session.headers.update(HEADERS)
+
+        # 1) 홈페이지 방문으로 쿠키·세션 획득
+        home_url = airline["url"]
+        session.get(home_url, timeout=10)
+
+        # 2) API 호출 (Referer = 홈페이지)
+        base = home_url.split("/career")[0].split("/app")[0]
+        api_url = f"{base}/app/jobnotice/list?careerType=&keywordType=all&keyword=&pageSize=20&pageNo=1"
+        r = session.get(
+            api_url,
+            headers={"Referer": home_url, "Accept": "application/json, text/javascript, */*; q=0.01",
+                     "X-Requested-With": "XMLHttpRequest"},
+            timeout=10,
+        )
+
+        if not r.text.strip():
+            raise ValueError("빈 응답")
+
         data = r.json()
         jobs = []
-        items = data.get("result", data.get("data", {}).get("list", []))
+        items = []
         if isinstance(data, dict):
             for key in ("result", "list", "jobList", "data"):
                 val = data.get(key)
@@ -100,11 +120,13 @@ def fetch_recruiter(airline: dict) -> list[dict]:
                         if isinstance(sub, list):
                             items = sub
                             break
+        elif isinstance(data, list):
+            items = data
+
         for item in items:
             title = item.get("noticeTitle") or item.get("title") or item.get("jobTitle", "")
             job_id = str(item.get("noticeNo") or item.get("jobNo") or item.get("id", ""))
             deadline = item.get("endDate") or item.get("deadlineDate") or item.get("closeDate", "")
-            link = f"{airline['url'].rstrip('/')}/../app/jobnotice/view?noticeNo={job_id}" if job_id else airline["url"]
             if title:
                 jobs.append({"title": title, "id": job_id, "deadline": deadline, "link": airline["url"]})
         return jobs
